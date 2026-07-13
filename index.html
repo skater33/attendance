@@ -1,35 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="ar">
 <head>
-    <title>حضور السنتر</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل حضور السنتر</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        select { width: 100%; padding: 10px; margin-bottom: 20px; }
-        #reader { width: 100%; max-width: 500px; margin: auto; }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        select { width: 90%; padding: 15px; margin: 20px 0; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; }
+        #reader { width: 100%; max-width: 400px; margin: auto; border: 2px solid #333; border-radius: 10px; }
     </style>
 </head>
 <body>
+
     <h2>نظام حضور الطلاب</h2>
+    
     <select id="session">
         <option value="مستر أحمد - فيزياء">مستر أحمد - فيزياء</option>
         <option value="مستر محمد - كيمياء">مستر محمد - كيمياء</option>
     </select>
+
     <div id="reader"></div>
 
     <script>
         function onScanSuccess(decodedText) {
             const session = document.getElementById('session').value;
-            // حط هنا رابط الـ Webhook بتاعك من Make
             const webhookUrl = "https://hook.eu1.make.com/l3y4v6c5ne5kp04e3g6ncmj3neivalw6"; 
             
             fetch(webhookUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: decodedText, session: session })
-            }).then(() => alert("تم تسجيل: " + decodedText));
+                body: JSON.stringify({
+                    studentCode: decodedText,
+                    sessionName: session,
+                    timestamp: new Date().toLocaleString("ar-EG")
+                })
+            }).then(() => {
+                alert("تم تسجيل الطالب بنجاح!");
+            }).catch(err => alert("حدث خطأ، حاول مرة أخرى"));
         }
+
         let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render(onScanSuccess);
     </script>
