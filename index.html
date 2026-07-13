@@ -1,21 +1,37 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>حضور السنتر</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        select { width: 100%; padding: 10px; margin-bottom: 20px; }
+        #reader { width: 100%; max-width: 500px; margin: auto; }
+    </style>
 </head>
 <body>
-    <div id="reader" style="width: 100%;"></div>
+    <h2>نظام حضور الطلاب</h2>
+    <select id="session">
+        <option value="مستر أحمد - فيزياء">مستر أحمد - فيزياء</option>
+        <option value="مستر محمد - كيمياء">مستر محمد - كيمياء</option>
+    </select>
+    <div id="reader"></div>
+
     <script>
         function onScanSuccess(decodedText) {
-            alert("لقطنا: " + decodedText);
-            // مكان الـ Webhook بتاعك هنا
-            fetch("https://hook.eu1.make.com/l3y4v6c5ne5kp04e3g6ncmj3neivalw6", {
+            const session = document.getElementById('session').value;
+            // حط هنا رابط الـ Webhook بتاعك من Make
+            const webhookUrl = "https://hook.eu1.make.com/l3y4v6c5ne5kp04e3g6ncmj3neivalw6"; 
+            
+            fetch(webhookUrl, {
                 method: "POST",
-                body: JSON.stringify({ code: decodedText })
-            });
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: decodedText, session: session })
+            }).then(() => alert("تم تسجيل: " + decodedText));
         }
-        new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }).render(onScanSuccess);
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
 </html>
