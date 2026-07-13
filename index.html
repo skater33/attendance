@@ -1,47 +1,163 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل حضور السنتر</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <title>سيستم حضور السنتر - سكانر الـ QR</title>
+    <!-- استدعاء مكتبة السكنر من السيرفر المباشر -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        select { width: 90%; padding: 15px; margin: 20px 0; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; }
-        #reader { width: 100%; max-width: 400px; margin: auto; border: 2px solid #333; border-radius: 10px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        p {
+            color: #5f6368;
+            margin-top: 0;
+            margin-bottom: 25px;
+        }
+        #reader {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+            background-color: #fafafa;
+        }
+        #result-box {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+            transition: all 0.3s ease;
+        }
+        .success {
+            background-color: #e6f4ea;
+            color: #137333;
+            border: 1px solid #137333;
+        }
+        .error {
+            background-color: #fce8e6;
+            color: #c5221f;
+            border: 1px solid #c5221f;
+        }
+        .loading {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+            border: 1px solid #1a73e8;
+        }
     </style>
 </head>
 <body>
 
-    <h2>نظام حضور الطلاب</h2>
-    
-    <select id="session">
-        <option value="مستر أحمد - فيزياء">مستر أحمد - فيزياء</option>
-        <option value="مستر محمد - كيمياء">مستر محمد - كيمياء</option>
-    </select>
+    <div class="container">
+        <h1>سكانر حضور الطلاب 🛡️</h1>
+        <p>وجه كاميرا الموبايل نحو كارت الـ QR الخاص بالطالب</p>
+        
+        <!-- الكاميرا هتفتح جوه الديف ده -->
+        <div id="reader"></div>
 
-    <div id="reader"></div>
+        <!-- صندوق النتيجة (هيظهر فيه حالة العملية) -->
+        <div id="result-box" id="resultText">جاري الاتصال...</div>
+    </div>
 
     <script>
-        function onScanSuccess(decodedText) {
-            const session = document.getElementById('session').value;
-            const webhookUrl = "https://hook.eu1.make.com/l3y4v6c5ne5kp04e3g6ncmj3neivalw6"; 
-            
-            fetch(webhookUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    studentCode: decodedText,
-                    sessionName: session,
-                    timestamp: new Date().toLocaleString("ar-EG")
-                })
-            }).then(() => {
-                alert("تم تسجيل الطالب بنجاح!");
-            }).catch(err => alert("حدث خطأ، حاول مرة أخرى"));
+        const webhookUrl = "https://hook.eu1.make.com/bsjxpbgs4v829cld1sck14q8e1mfguo7";
+        const secretKey = "Hh123321@@@";
+        const resultBox = document.getElementById('result-box');
+        
+        let lastScannedCode = "";
+        let isProcessing = false;
+
+        function showStatus(text, type) {
+            resultBox.style.display = 'block';
+            resultBox.className = type;
+            resultBox.innerText = text;
         }
 
-        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-        html5QrcodeScanner.render(onScanSuccess);
+        // دالة إرسال البيانات لـ Make
+        async function sendAttendance(studentId) {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            showStatus(`جاري تسجيل حضور الكود: ${studentId}...`, 'loading');
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        studentCode: studentId,
+                        secretKey: secretKey
+                    })
+                });
+
+                if (response.ok) {
+                    showStatus(`تم تسجيل الحضور بنجاح للطالب: ${studentId} ✅`, 'success');
+                } else {
+                    showStatus('حدث خطأ في السيرفر أثناء التسجيل ❌', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showStatus('خطأ في الاتصال بالإنترنت! تأكد من الشبكة 📶', 'error');
+            }
+
+            // تصفير مؤقت عشان يسمح بسكان كارت جديد بعد 3 ثواني
+            setTimeout(() => {
+                isProcessing = false;
+                lastScannedCode = "";
+                resultBox.style.display = 'none';
+            }, 3000);
+        }
+
+        // تشغيل الكاميرا والسكنر بمجرد تحميل الصفحة
+        function onScanSuccess(decodedText, decodedResult) {
+            // للتأكد إنه مش بيقعد يبعت نفس الكود ورا بعض في نفس الثانية
+            if (decodedText !== lastScannedCode && !isProcessing) {
+                lastScannedCode = decodedText;
+                sendAttendance(decodedText);
+            }
+        }
+
+        function onScanFailure(error) {
+            // الدالة دي بتتندى كل ما الكاميرا تفشل في لقط كود (سيبها فاضية عشان متعملش إزعاج)
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            /* verbose= */ false
+        );
+        
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
     </script>
 </body>
 </html>
